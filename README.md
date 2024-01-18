@@ -1,18 +1,8 @@
 # projet-mds-generation-irm
 
-## Requirements
+## Clone guided-diffusion
 
-(J'ai écrit les requirements moi même, pas eu le temps de tester j'espère que ça marche)
-`pip install -r requirements.txt`
-
-Si jamais il y a des bugs, tu peux aussi tenter d'utiliser les setup de guided diffusion
-```python guided-diffusion/setup.py install.`
-
-Pour info, le code de diffusion vient de là: https://github.com/openai/guided-diffusion.git
-
-Je l'ai directement mis dedans parce que le mec (et moi) avons fait des modifs un peu degueues directement dans le code source pour le faire fonctionner (ça aurait été plus propre de ne pas y toucher mais pas le time)
-
-Tout le code est dans guided-diffusion, donc fais un petit `cd guided-diffusion` pour lancer les scripts qui suivent.
+https://github.com/openai/guided-diffusion and rename the folder guided_diffusion
 
 ## Scripts
 
