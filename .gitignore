@@ -1,6 +1,8 @@
-env/
+env
 data/*
 checkpoints/*
+guided_diffusion
+guided-diffusion
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

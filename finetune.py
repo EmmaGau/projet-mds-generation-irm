@@ -1,5 +1,5 @@
-from guided_diffusion import dist_util, logger
-from guided_diffusion.script_util import (
+from guided_diffusion.guided_diffusion import dist_util, logger
+from guided_diffusion.guided_diffusion.script_util import (
     add_dict_to_argparser,
     args_to_dict,
     diffusion_defaults
@@ -17,7 +17,7 @@ import torch.optim as optim
 import time
 import tqdm
 import torch
-from guided_diffusion.unet import FinetuneUNetModel, UNetModel
+from .finetune_unet import FinetuneUNetModel
 import argparse
 from dataloader import Dataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts
