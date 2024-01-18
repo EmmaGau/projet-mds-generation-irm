@@ -17,7 +17,7 @@ import torch.optim as optim
 import time
 import tqdm
 import torch
-from .finetune_unet import FinetuneUNetModel
+from finetune_unet import FinetuneUNetModel
 import argparse
 from dataloader import Dataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts
@@ -188,6 +188,8 @@ def main():
 
     device = 'cuda'
     model = model.to(device)
+
+    print(device)
 
     # Vérification du loading du modèle
     model_layer_names = [name for name, _ in model.named_parameters()]

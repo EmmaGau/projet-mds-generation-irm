@@ -1,5 +1,5 @@
-from guided_diffusion import dist_util, logger
-from guided_diffusion.script_util import (
+from guided_diffusion.guided_diffusion import dist_util, logger
+from guided_diffusion.guided_diffusion.script_util import (
     add_dict_to_argparser,
     args_to_dict,
     diffusion_defaults
@@ -12,7 +12,7 @@ import torch.optim as optim
 import time
 import tqdm
 import torch
-from guided_diffusion.unet import FinetuneUNetModel, UNetModel
+from finetune_unet import FinetuneUNetModel
 import argparse
 from dataloader import Dataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -125,6 +125,7 @@ def create_argparser():
 parser = create_argparser()
 parser.add_argument('model_path')
 parser.add_argument('img_dir')
+parser.add_argument('result_dir')
 args = parser.parse_args()
 for k, v in args.__dict__.items():
     print(k, v)
@@ -178,6 +179,10 @@ def overlay_images(image, overlay, ignore_color=[0, 0, 0], alpha=0.5):
     out = np.where(mask, image, image * alpha + overlay * (1 - alpha)).astype(image.dtype)
     return out
 
+# Create output directory if needed
+if not os.path.exists(args.result_dir):
+    os.makedirs(args.result_dir)
+
 model.eval()
 torch.backends.cudnn.deterministic = True
 for i in os.listdir(args.img_dir):
@@ -202,15 +207,17 @@ for i in os.listdir(args.img_dir):
         for c_number, c_color in colors.items():
             res[tmp == c_number] = c_color
 
-        fig, axes = plt.subplots(nrows=1, ncols=3)
-        figManager = plt.get_current_fig_manager()
-        figManager.window.showMaximized()
+        # fig, axes = plt.subplots(nrows=1, ncols=3)
+        # figManager = plt.get_current_fig_manager()
+        # figManager.window.showMaximized()
         orig_img_cpy = orig_img.copy()
         res_cpy = res.copy()
-        axes[0].imshow(orig_img)
-        axes[1].imshow(res)
-        axes[2].imshow(overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
-        plt.show()
+        # axes[0].imshow(orig_img)
+        # axes[1].imshow(res)
+        # axes[2].imshow(overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
+        # plt.show()
+
+        cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_orig.' + i.split('.')[1]), orig_img)
+        cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_res.' + i.split('.')[1]), res)
+        cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_overlay.' + i.split('.')[1]), overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
  
-
-
