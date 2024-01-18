@@ -1,6 +1,6 @@
-env 
-data
-checkpoints
+env/
+data/*
+checkpoints/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
