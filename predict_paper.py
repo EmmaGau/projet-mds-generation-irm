@@ -12,7 +12,7 @@ import torch.optim as optim
 import time
 import tqdm
 import torch
-from finetune_unet import FinetuneUNetModel
+from guided_diffusion.guided_diffusion.unet import UNetModel
 import argparse
 from dataloader import Dataset
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -79,7 +79,7 @@ def create_model(
     for res in attention_resolutions.split(","):
         attention_ds.append(image_size // int(res))
 
-    return FinetuneUNetModel(
+    return UNetModel(
         image_size=image_size,
         in_channels=3,
         model_channels=num_channels,
@@ -152,17 +152,6 @@ model = create_model(
     args.out_channels
 )
 
-categories = {
-'Email' : ([255,0,0], 1),
-'Os' : ([0,255,0], 2),
-'Dentine': ([0,0,255], 3),
-'Autre' : ([255, 152, 0], 4),
-'Carie': ([255,152,0], 5),
-'Pulpe': ([0, 255, 237], 6)
-}
-
-colors = {v[1] : v[0] for k, v in categories.items()}
-
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
 state_dict = torch.load(args.model_path, map_location=device)
@@ -173,21 +162,9 @@ model = model.to(device)
 for name, param in model.named_parameters():
     param.requires_grad = False
 
-def overlay_images(image, overlay, ignore_color=[0, 0, 0], alpha=0.5):
-    ignore_color = np.asarray(ignore_color)
-    mask = (overlay == ignore_color).all(-1, keepdims=True)
-    out = np.where(mask, image, image * alpha + overlay * (1 - alpha)).astype(image.dtype)
-    return out
-
 # Create output directory if needed
 if not os.path.exists(args.result_dir):
     os.makedirs(args.result_dir)
-
-out_dir = ['IMG/', 'MASK/', 'OVERLAY/']
-for i in out_dir:
-    print(os.path.join(args.result_dir, i))
-    if not os.path.exists(os.path.join(args.result_dir, i)):
-        os.makedirs(os.path.join(args.result_dir, i))
 
 model.eval()
 torch.backends.cudnn.deterministic = True
@@ -196,6 +173,8 @@ for i in os.listdir(args.img_dir):
     height, width = img.shape[:2]
 
     img = cv2.resize(img, (args.image_size, args.image_size))
+    print(img.shape)
+    print(img)
     orig_img = img.copy()
     img = img.astype(np.float32) / 127.5 - 1.
     img = np.moveaxis(img, -1, 0)
@@ -205,26 +184,29 @@ for i in os.listdir(args.img_dir):
 
     with torch.no_grad():
         outputs = model(tensor, timesteps = torch.full((tensor.size()[0],), 1, device=device, dtype=torch.int32))
-        outputs = torch.softmax(outputs[0], axis=0)
-        tmp = outputs.detach().cpu().numpy()
-        tmp = np.argmax(tmp, axis=0)
-        res = np.zeros_like(img, dtype=np.uint8).transpose(1,2,0)
-
-        for c_number, c_color in colors.items():
-            res[tmp == c_number] = c_color
-
-        # fig, axes = plt.subplots(nrows=1, ncols=3)
-        # figManager = plt.get_current_fig_manager()
-        # figManager.window.showMaximized()
-        orig_img_cpy = orig_img.copy()
-        res_cpy = res.copy()
+        # outputs = torch.softmax(outputs[0], axis=0)
+        outputs = ((outputs + 1) * 127.5).clamp(0, 255).to(torch.uint8)
+        outputs = outputs.permute(0, 2, 3, 1)
+        outputs = outputs.contiguous()
+        out_img = outputs[0].detach().cpu().numpy()
+        # Mean over 3rd dimension
+        # out_img = np.mean(out_img, axis=2)
+        print(out_img.shape)
+        print(out_img)
+        
+        plt.subplot(1, 2, 1)
+        plt.imshow(orig_img)
+        plt.title('Original image')
+        plt.subplot(1, 2, 2)
+        plt.imshow(out_img)
+        plt.title('Generated image')
+        plt.show()
         # axes[0].imshow(orig_img)
         # axes[1].imshow(res)
         # axes[2].imshow(overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
         # plt.show()
-        
-        print('writing results for', i)
-        cv2.imwrite(os.path.join(args.result_dir, 'IMG/', i), orig_img)
-        cv2.imwrite(os.path.join(args.result_dir, 'MASK/', i), res)
-        cv2.imwrite(os.path.join(args.result_dir, 'OVERLAY/', i), overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
+
+        # cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_orig.' + i.split('.')[1]), orig_img)
+        # cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_res.' + i.split('.')[1]), res)
+        # cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_overlay.' + i.split('.')[1]), overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
  
