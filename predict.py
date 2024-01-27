@@ -183,6 +183,11 @@ def overlay_images(image, overlay, ignore_color=[0, 0, 0], alpha=0.5):
 if not os.path.exists(args.result_dir):
     os.makedirs(args.result_dir)
 
+out_dir = ['/IMG', '/MASK', '/OVERLAY']
+for i in out_dir:
+    if not os.path.exists(os.path.join(args.result_dir, i)):
+        os.makedirs(os.path.join(args.result_dir, i))
+
 model.eval()
 torch.backends.cudnn.deterministic = True
 for i in os.listdir(args.img_dir):
@@ -217,7 +222,7 @@ for i in os.listdir(args.img_dir):
         # axes[2].imshow(overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
         # plt.show()
 
-        cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_orig.' + i.split('.')[1]), orig_img)
-        cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_res.' + i.split('.')[1]), res)
-        cv2.imwrite(os.path.join(args.result_dir, i.split('.')[0] + '_overlay.' + i.split('.')[1]), overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
+        cv2.imwrite(os.path.join(args.result_dir, '/IMG/', i), orig_img)
+        cv2.imwrite(os.path.join(args.result_dir, '/MASK/', i), res)
+        cv2.imwrite(os.path.join(args.result_dir, '/OVERLAY/', i), overlay_images(orig_img_cpy, res_cpy,alpha=0.85))
  

@@ -218,6 +218,7 @@ def main():
 
     dataset = Dataset(args.img_dir, args.mask_dir, transform, args.image_size)
     training_generator = torch.utils.data.DataLoader(dataset, **params_train)
+    print(f'{len(training_generator)} samples in training')
 
     # print the first element of the training set
     img = next(iter(training_generator))
@@ -231,6 +232,7 @@ def main():
                 'num_workers': 12}
 
         validation_generator = torch.utils.data.DataLoader(valdata, **params_val)
+        print(f'{len(validation_generator)} samples in validation')
 
     train_losses = []
     val_losses = []
