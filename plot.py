@@ -35,13 +35,13 @@ for i in range(len(img_to_show)):
 
 # Add legend
 categories = {
-    'Enamel': ([255, 0, 0], 1),
-    'Bone': ([0, 255, 0], 2),
-    'Dentine': ([0, 0, 255], 3),
-    'Other': ([255, 152, 0], 4),
-    'Carie': ([255, 152, 0], 5),
-    'Pulp': ([0, 255, 237], 6)
-    }
+'Enamel' : ([255,0,0], 1),
+'Bone' : ([0,255,0], 2),
+'Dentine': ([0,0,255], 3),
+'Other' : ([255, 0, 254], 4),
+'Cavity': ([255,152,0], 5),
+'Pulp': ([0, 255, 237], 6)
+}
 
 handles = [plt.Rectangle((0,0),1,1, color=np.array(categories[label][0])/255) for label in list(categories.keys())]
 plt.legend(handles, list(categories.keys()), loc="lower right", bbox_to_anchor=(0.5, -0.5), ncol=3, fontsize=20)

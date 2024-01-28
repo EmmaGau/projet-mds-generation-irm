@@ -5,12 +5,12 @@ import cv2
 import argparse
 
 categories = {
-    'Email': ([255, 0, 0], 1),
-    'Os': ([0, 255, 0], 2),
-    'Dentine': ([0, 0, 255], 3),
-    'Autre': ([255, 152, 0], 4),
-    'Carie': ([255, 152, 0], 5),
-    'Pulpe': ([0, 255, 237], 6)
+'Email' : ([255,0,0], 1),
+'Os' : ([0,255,0], 2),
+'Dentine': ([0,0,255], 3),
+'Autre' : ([255, 0, 254], 4),
+'Carie': ([255,152,0], 5),
+'Pulpe': ([0, 255, 237], 6)
 }
 
 def calculate_iou(gt_mask, pred_mask):
