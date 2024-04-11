@@ -23,13 +23,20 @@ def main():
     pretrained_model = 'ddpm-bitewings-64/unet'
     class_wheighting = False
     config.image_size = 64
-    args= {'class_weighting': False, 'lr': 1e-4, 'epochs':5, 'out_channels': 7}
+    args= {
+        'class_weighting': False,
+        'lr': 1e-4, 'epochs':5,
+        'out_channels': 7,
+        'weights_save': 'finetune.pth'}
 
     # Charger les images et les stocker dans une liste
     dataset_train = DatasetSeg(img_train, mask_train, config.image_size)
     training_generator = torch.utils.data.DataLoader(dataset_train, batch_size=config.train_batch_size, shuffle=True)
     dataset_val = DatasetSeg(img_val, mask_val, config.image_size)
     validation_generator = torch.utils.data.DataLoader(dataset_val, batch_size=1, shuffle=False)
+
+    print('Training set size:', len(dataset_train))
+    print('Validation set size:', len(dataset_val))
 
     # check the first element of the training set
     img, mask = next(iter(training_generator))
@@ -138,7 +145,7 @@ def main():
 
                 # On donne l'image d'origine avec un timestep fixe à 1 (pour simuler une image quasiment pas bruitée pour
                 # rester cohérent avec le pretrain)
-                outputs = model(img, torch.tensor([1.], dtype=torch.float32, device=device))
+                outputs = model(img, torch.tensor([1.], dtype=torch.float32, device=device))[0]
                 print(outputs.size(), mask.size())
 
                 loss = criterion(outputs, mask.long())
@@ -181,7 +188,7 @@ def main():
                 if best_miou is None or new_miou > best_miou:
                     best_miou = new_miou
                     torch.save(model.state_dict(), args['weights_save'])
-                    print(f'mIoU improved, saving model to {args.weights_save}')
+                    print(f'mIoU improved, saving model...')
             else:
                 torch.save(model.state_dict(), args['weights_save'])
             scheduler.step()
