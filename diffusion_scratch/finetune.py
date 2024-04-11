@@ -22,6 +22,7 @@ def main():
     mask_val = '../data/Dataset_segmentation/Split3/VAL/MASK'
     pretrained_model = 'ddpm-bitewings-64/unet'
     class_wheighting = False
+    config.image_size = 64
     args= {'class_weighting': False, 'lr': 1e-4, 'epochs':5, 'out_channels': 7}
 
     # Charger les images et les stocker dans une liste
