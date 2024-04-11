@@ -16,7 +16,7 @@ from utils import TrainingConfig
 config = TrainingConfig()
 
 # Supposons que vous avez une liste de noms de fichiers d'images
-data_dir = "../data_generation/Bitewings_Resized_256/"
+data_dir = "../data/Bitewings_Resized_256/"
 image_files = os.listdir(data_dir)  # Remplacez ces noms par les noms de vos fichiers
 
 # Charger les images et les stocker dans une liste
