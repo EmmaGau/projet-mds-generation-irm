@@ -12,6 +12,7 @@ from accelerate import Accelerator
 from tqdm.auto import tqdm
 from pathlib import Path
 from utils import TrainingConfig
+import pandas as pd
 
 config = TrainingConfig()
 
@@ -50,6 +51,7 @@ custom_dataset.set_transform(transform)
 train_dataloader = torch.utils.data.DataLoader(custom_dataset, batch_size=config.train_batch_size, shuffle=True)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using device: {device}")
 
 model = UNet2DModel(
     sample_size=config.image_size,  # the target image resolution
@@ -102,6 +104,9 @@ def evaluate(config, epoch, pipeline):
     image_grid.save(f"{test_dir}/{epoch:04d}.png")
 
 def train_loop(config, model, noise_scheduler, optimizer, train_dataloader, lr_scheduler):
+    df_log = pd.DataFrame(columns=['epoch', 'loss', 'global_step', 'lr'])
+    df_log.to_csv(config.output_dir + '/log.csv', index=False, columns=['epoch', 'loss', 'global_step', 'lr'])
+
     # Initialize accelerator and tensorboard logging
     accelerator = Accelerator(
         mixed_precision=config.mixed_precision,
@@ -125,6 +130,8 @@ def train_loop(config, model, noise_scheduler, optimizer, train_dataloader, lr_s
 
     # Now you train the model
     for epoch in range(config.num_epochs):
+        total_loss = 0
+
         progress_bar = tqdm(total=len(train_dataloader), disable=not accelerator.is_local_main_process)
         progress_bar.set_description(f"Epoch {epoch}")
 
@@ -155,20 +162,40 @@ def train_loop(config, model, noise_scheduler, optimizer, train_dataloader, lr_s
                 lr_scheduler.step()
                 optimizer.zero_grad()
 
+            total_loss += loss.detach().item()
+
             progress_bar.update(1)
             logs = {"loss": loss.detach().item(), "lr": lr_scheduler.get_last_lr()[0], "step": global_step}
             progress_bar.set_postfix(**logs)
             accelerator.log(logs, step=global_step)
             global_step += 1
 
+        new_log = pd.DataFrame({'epoch': epoch, 'loss': total_loss, 'global_step': global_step, 'lr': lr_scheduler.get_last_lr()[0]}, index=[0])
+        if len(df_log) > 0:
+            df_log = pd.concat([df_log, new_log], ignore_index=True)
+        else:
+            df_log = new_log
+        df_log.to_csv(config.output_dir + '/log.csv', index=False, columns=['epoch', 'loss', 'global_step', 'lr'])
+
+        # plot loss
+        fig = plt.figure()
+        plt.plot(df_log['epoch'], df_log['loss'])
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Training loss')
+        plt.savefig(config.output_dir + '/loss.png')
+
+
         # After each epoch you optionally sample some demo images with evaluate() and save the model
         if accelerator.is_main_process:
             pipeline = DDPMPipeline(unet=accelerator.unwrap_model(model), scheduler=noise_scheduler)
 
             if (epoch + 1) % config.save_image_epochs == 0 or epoch == config.num_epochs - 1:
+                print(f"Sampling images at epoch {epoch}...")
                 evaluate(config, epoch, pipeline)
 
             if (epoch + 1) % config.save_model_epochs == 0 or epoch == config.num_epochs - 1:
+                print(f"Saving model at epoch {epoch}...")
                 pipeline.save_pretrained(config.output_dir)
 
 if __name__ == "__main__":

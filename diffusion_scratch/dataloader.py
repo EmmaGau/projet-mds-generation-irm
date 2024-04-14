@@ -57,6 +57,6 @@ class DatasetSeg(torch.utils.data.Dataset):
         )
         
         img = preprocess(Image.fromarray(img))
-        mask = torch.from_numpy(mask).unsqueeze(0)
+        mask = torch.from_numpy(mask)
 
         return img, mask
