@@ -16,15 +16,38 @@ import pandas as pd
 
 config = TrainingConfig()
 
+print('image_size:', config.image_size)
+print('train_batch_size:', config.train_batch_size)
+print('eval_batch_size:', config.eval_batch_size)
+print('num_epochs:', config.num_epochs)
+print('gradient_accumulation_steps:', config.gradient_accumulation_steps)
+print('learning_rate:', config.learning_rate)
+print('lr_warmup_steps:', config.lr_warmup_steps)
+print('save_image_epochs:', config.save_image_epochs)
+print('save_model_epochs:', config.save_model_epochs)
+print('mixed_precision:', config.mixed_precision)
+print('output_dir:', config.output_dir)
+print('overwrite_output_dir:', config.overwrite_output_dir)
+print('seed:', config.seed)
+
 # Supposons que vous avez une liste de noms de fichiers d'images
-data_dir = "../data/Bitewings_Resized_256/"
-image_files = os.listdir(data_dir)  # Remplacez ces noms par les noms de vos fichiers
+data_dir1 = "../data/split/bitewings/train/"
+data_dir2 = "../data/split/xray/train/"
+image_files1 = os.listdir(data_dir1)
+image_files2 = os.listdir(data_dir2)
 
 # Charger les images et les stocker dans une liste
-images = []
-for image_file in image_files:
-    with Image.open(data_dir + image_file) as img:
-        images.append(img)
+images1 = []
+for image_file in image_files1:
+    with Image.open(data_dir1 + image_file) as img:
+        images1.append(img)
+
+images2 = []
+for image_file in image_files2:
+    with Image.open(data_dir2 + image_file) as img:
+        images2.append(img)
+
+images = images1 + images2
 
 # Création du dataset avec les images chargées
 custom_dataset = Dataset.from_dict({"image": images})
@@ -96,7 +119,10 @@ def evaluate(config, epoch, pipeline):
     ).images
 
     # Make a grid out of the images
-    image_grid = make_image_grid(images, rows=4, cols=4)
+    if config.eval_batch_size==16:
+        image_grid = make_image_grid(images, rows=4, cols=4)
+    if config.eval_batch_size==8:
+        image_grid = make_image_grid(images, rows=2, cols=4)
 
     # Save the images
     test_dir = os.path.join(config.output_dir, "samples")

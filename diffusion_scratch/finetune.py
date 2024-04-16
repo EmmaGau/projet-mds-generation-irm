@@ -20,13 +20,16 @@ def main():
     mask_train = '../data/Dataset_segmentation/Split3/TRAIN/MASK'
     img_val = '../data/Dataset_segmentation/Split3/VAL/IMG'
     mask_val = '../data/Dataset_segmentation/Split3/VAL/MASK'
-    pretrained_model = 'ddpm-bitewings-64-2/unet'
+    pretrained_model = 'ddpm-bitewings-64/unet'
     class_wheighting = True
     args= {
         'class_weighting': False,
         'lr': 1e-4, 'epochs':200,
         'out_channels': 7,
-        'weights_save': 'ddpm-bitewings-64-2/unet_finetune/unet_finetune_miou.pth'}
+        'weights_save': 'ddpm-bitewings-64/unet_finetune/unet_finetune_miou.pth'}
+
+    path_df = args['weights_save'].replace('.pth', '.csv')
+    path_img = args['weights_save'].replace('.pth', '.png')
 
     # Charger les images et les stocker dans une liste
     dataset_train = DatasetSeg(img_train, mask_train, config.image_size)
@@ -107,7 +110,7 @@ def main():
     best_miou = None
 
     df = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss', 'val_miou', 'lr'])
-    df.to_csv('ddpm-bitewings-64/unet_finetune/unet_finetune_miou.csv', index=False)
+    df.to_csv(path_df, index=False)
 
 
     # Class weighting
@@ -196,7 +199,7 @@ def main():
             df = pd.concat([df, new_df], ignore_index=True)
         else:
             df = new_df
-        df.to_csv('ddpm-bitewings-64/unet_finetune/unet_finetune_miou.csv', index=False)
+        df.to_csv(path_df, index=False)
 
         scheduler.step()
 
@@ -221,7 +224,7 @@ def main():
     axes[2].set_ylabel('mIoU')
 
     plt.tight_layout()
-    plt.savefig('ddpm-bitewings-64/unet_finetune/unet_finetune_miou.png')
+    plt.savefig(path_img)
 
 
 if __name__ == '__main__':

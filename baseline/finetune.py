@@ -1,3 +1,5 @@
+print('importing dependencies...')
+
 from guided_diffusion.guided_diffusion import dist_util, logger
 from guided_diffusion.guided_diffusion.script_util import (
     add_dict_to_argparser,
@@ -9,8 +11,6 @@ from torchviz import make_dot
 import os
 import cv2
 import albumentations as A
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.optim as optim
@@ -22,6 +22,9 @@ import argparse
 from dataloader import Dataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts
 import torchmetrics
+import pandas as pd
+
+print('dependencies imported')
 
 
 # Les deux fonctions ci dessous sont recopiées de guided diffusion
@@ -154,6 +157,7 @@ def main():
     # for k, v in args.__dict__.items():
     #     print(k, v)
 
+    print('Creating model ...')
     dist_util.setup_dist()
     # logger.configure()
     model = create_model(
@@ -176,6 +180,7 @@ def main():
         args.out_channels
     )
 
+    print('Loading model ...')
     state_dict = torch.load(args.model_path)
 
     # Comme le modèle qu'on veut finetuner a un nombre différent de couches de sortie, on ne peut pas load les poids car sinon
@@ -227,7 +232,7 @@ def main():
     validation_generator = None
     if args.imgval_dir is not None and args.maskval_dir is not None:
         valdata = Dataset(args.imgval_dir, args.maskval_dir, None, args.image_size)
-        params_val = {'batch_size': 1,
+        params_val = {'batch_size': args.batch_size,
                 'shuffle': False,
                 'num_workers': 12}
 
@@ -240,6 +245,9 @@ def main():
     all_lr = []
     best_loss = None
     best_miou = None
+
+    df = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss', 'val_miou', 'lr'])
+    df.to_csv(args.weights_save.replace('.pth', '.csv'), index=False)
 
     # Class weighting
     print('Calculating class weights ...')
@@ -368,34 +376,39 @@ def main():
                 print(f'mIoU improved, saving model to {args.weights_save}')
         else:
             torch.save(model.state_dict(), args.weights_save)
+
+        new_row = {'epoch': epoch, 'train_loss': running_loss, 'val_loss': new_loss, 'val_miou': new_miou, 'lr': all_lr[-1]}
+        new_df = pd.DataFrame(new_row, index=[0])  # Create a new DataFrame with the new row
+        if len(df) > 0:
+            df = pd.concat([df, new_df], ignore_index=True)
+        else:
+            df = new_df
+        df.to_csv(args.weights_save.replace('.pth', '.csv'), index=False)
+
         scheduler.step()
         print()
 
     # Plot
-    fig, axes = plt.subplots(nrows=1, ncols=3)
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5))
     axes[0].plot(np.arange(1, args.epochs + 1), train_losses, label='Training Loss')
     axes[0].set_ylabel('loss')
     axes[0].set_xlabel('Epochs')
     if val_losses:
         axes[0].plot(np.arange(1, args.epochs + 1), val_losses, label='Validation Loss')
-    if args.unfreeze_decoder != 1.:
-        axes[0].axvline(unfreeze_decoder, color='red', linestyle='--')
+    axes[0].legend()
 
     axes[1].plot(np.arange(1, args.epochs + 1), all_lr, label='Learning rate')
     axes[1].set_yscale('log')
     axes[1].set_ylabel('Learning rate')
     axes[1].set_xlabel('Epochs')
-    if args.unfreeze_decoder != 1.:
-        axes[1].axvline(unfreeze_decoder, color='red', linestyle='--')
+    axes[1].legend()
 
-    if val_mious:
-        axes[2].plot(np.arange(1, args.epochs + 1), val_mious, label='mIoU')
-        axes[2].set_xlabel('Epochs')
-        axes[2].set_ylabel('mIoU')
-    if args.unfreeze_decoder != 1.:
-        axes[2].axvline(unfreeze_decoder, color='red', linestyle='--')
-    plt.legend()
-    plt.show()
+    axes[2].plot(np.arange(1, args.epochs + 1), val_mious, label='mIoU')
+    axes[2].set_xlabel('Epochs')
+    axes[2].set_ylabel('mIoU')
+
+    plt.tight_layout()
+    plt.savefig(args.weights_save.replace('.pth', '.png'))
 
 
 if __name__ == '__main__':
