@@ -13,21 +13,34 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # dataloader 
-    transformations = transforms.Compose([
-            transforms.Resize((256, 256)),
+    mean_xray = 116.6857
+    std_xray = 58.7522
+
+    mean_bitewings = 125.0544
+    std_bitewings = 69.5633
+
+    # dataloader
+    transformations_bitewings = transforms.Compose([
+            transforms.Resize((256, 256)),# Redimensionner l'image
             transforms.ToTensor(),
-            transforms.Normalize((0.5,),(0.5,)),
+            transforms.Normalize((mean_bitewings,),(std_bitewings,)),# Convertir en tensor
         ])
+
+    transformations_xray = transforms.Compose([
+        transforms.Resize((256, 256)),# Redimensionner l'image
+        transforms.ToTensor(),
+        transforms.Normalize((mean_xray,),(std_xray,)),# Convertir en tensor
+    ])
 
     data_folder = 'data/split'
     bitewings_folder = data_folder+'/bitewings/train'
     xray_folder = data_folder+'/xray/train'
 
-    bitewings = ImageFolderDataset(bitewings_folder, transform=transformations)
-    xray = ImageFolderDataset(xray_folder, transform=transformations)
+    bitewings = ImageFolderDataset(bitewings_folder, transform=transformations_bitewings)
+    xray = ImageFolderDataset(xray_folder, transform=transformations_xray)
     combined_dataset = ConcatDataset([bitewings, xray])
 
-    train_loader = DataLoader(bitewings, batch_size=batch_size, shuffle=True, drop_last=True)
+    train_loader = DataLoader(combined_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
     # model 
     # Create some generator and discriminator
